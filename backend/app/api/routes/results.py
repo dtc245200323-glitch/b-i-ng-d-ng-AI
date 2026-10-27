@@ -100,6 +100,7 @@ def scheme_view(db, scheme):
         "id": scheme.id,
         "course_id": scheme.course_id,
         "name": scheme.name,
+        "passing_percent": scheme.passing_percent,
         "revision": scheme.revision,
         "status": scheme.status,
         "version": scheme.version,
@@ -153,6 +154,7 @@ def write_scheme(db, tenant, request, response, body, item=None):
             course_id=course.id,
             revision=revision + 1,
             name=body.name,
+            passing_percent=body.passing_percent,
         )
         db.add(item)
         db.flush()
@@ -160,6 +162,7 @@ def write_scheme(db, tenant, request, response, body, item=None):
     else:
         before = scheme_view(db, item)
         item.name = body.name
+        item.passing_percent = body.passing_percent
         for component in scheme_components(db, item.id):
             db.delete(component)
         db.flush()
@@ -315,6 +318,7 @@ def clone_scheme(
         course_id=item.course_id,
         revision=revision + 1,
         name=item.name,
+        passing_percent=item.passing_percent,
     )
     db.add(clone)
     db.flush()

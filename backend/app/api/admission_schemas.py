@@ -77,6 +77,7 @@ class RequestInput(Input):
     student_id: UUID | None = None
     course_id: UUID
     branch_id: UUID | None = None
+    preferred_class_id: UUID | None = None
     format: Literal["any", "offline", "online", "hybrid"] = "any"
     availability: list[Availability] = Field(default_factory=list, max_length=28)
     discount_code: str = Field(default="", max_length=40)

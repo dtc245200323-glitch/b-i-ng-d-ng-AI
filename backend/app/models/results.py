@@ -35,6 +35,7 @@ class CourseGradingScheme(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     course_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     revision: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String(200))
+    passing_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     status: Mapped[str] = mapped_column(String(16), default="draft")
     version: Mapped[int] = mapped_column(Integer, default=1)
     __mapper_args__ = {"version_id_col": version}

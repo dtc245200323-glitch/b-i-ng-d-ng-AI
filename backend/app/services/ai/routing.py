@@ -3,6 +3,8 @@
 import hashlib
 import json
 from datetime import timedelta
+from time import monotonic
+from types import SimpleNamespace
 
 from sqlalchemy import func, select
 
@@ -55,7 +57,11 @@ def invoke(db, tenant, task: str, locale: str, payload: dict, validator):
         )
         .order_by(AIRoute.priority)
     ).all()
+    deadline = monotonic() + 30
     for _, provider in routes:
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            break
         if task not in provider.allowed_tasks:
             continue
         db.scalar(select(AIProvider.id).where(AIProvider.id == provider.id).with_for_update())
@@ -90,8 +96,22 @@ def invoke(db, tenant, task: str, locale: str, payload: dict, validator):
         db.commit()  # Release tenant/provider locks before waiting on an external endpoint.
         try:
             output = providers.complete(
-                provider,
-                prompts.render(prompt.body, task, locale),
+                SimpleNamespace(
+                    **{
+                        **provider.__dict__,
+                        "timeout_seconds": min(provider.timeout_seconds, remaining),
+                    }
+                ),
+                prompts.render(prompt.body, task, locale)
+                + (
+                    "\nFor this request, replace the single-question response with "
+                    '{"questions":[{"stem":"...","options":["..."],'
+                    '"correct_index":0,"explanation":"..."}]}. '
+                    "Return exactly question_count distinct questions at the supplied "
+                    "language, level, topic and difficulty. Every explanation is required."
+                    if task == "practice_generation" and "question_count" in payload
+                    else ""
+                ),
                 payload,
                 get_settings().ai_key_file,
             )

@@ -23,6 +23,9 @@ class Component(BaseModel):
 class SchemeCreate(Input):
     course_id: UUID
     name: str = Field(min_length=1, max_length=200)
+    passing_percent: Decimal | None = Field(
+        default=None, ge=0, le=100, max_digits=5, decimal_places=2
+    )
     components: list[Component] = Field(min_length=1, max_length=30)
 
     @model_validator(mode="after")

@@ -6,6 +6,7 @@ import './ai-hub.css'
 export function AIHub({ language }: { language: Language }) {
   const vi = language === 'vi'
   const tasks = [
+    { to: '/class-advisor', icon: 'class' as const, title: vi ? 'Tìm lớp phù hợp' : 'Find a matching class', detail: vi ? 'Nhận tư vấn theo trình độ, lịch rảnh và chỗ trống thực tế.' : 'Match your level, availability and actual open seats.' },
     { to: '/practice', icon: 'spark' as const, title: vi ? 'Làm bài luyện' : 'Practice', detail: vi ? 'Luyện với bài hiện có và theo dõi chuỗi ngày hoàn thành.' : 'Work on available exercises and track completed days.' },
     { to: '/ai-progress', icon: 'chat' as const, title: vi ? 'Nhận xét & bước tiếp' : 'Feedback & next step', detail: vi ? 'Xem nhận xét có nguồn từ kết quả, chuyên cần và bài luyện.' : 'See sourced feedback from results, attendance and practice.' },
     { to: '/course-catalog', icon: 'book' as const, title: vi ? 'Khám phá khóa học' : 'Explore courses', detail: vi ? 'Xem các khóa đã công bố trước khi chọn hướng học tiếp.' : 'Browse published courses before choosing what to study next.' },

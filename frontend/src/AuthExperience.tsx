@@ -18,10 +18,10 @@ function Orbit({ compact = false }: { compact?: boolean }) {
 
 export function AuthLayout({ language, onLanguage, children, welcome = false }: LanguageProps & { children: ReactNode; welcome?: boolean }) {
   const t = (key: string) => translate(language, key)
-  return <main className={`auth-experience ${welcome ? 'auth-welcome-layout' : ''}`}>
+  return <main className={`auth-experience auth-centered ${welcome ? 'auth-welcome-layout' : ''}`}>
     <header className="auth-header"><a className="auth-brand" href="/" aria-label="SynapseLMS"><span aria-hidden="true">S</span><strong>SynapseLMS</strong></a>
       <button type="button" className="auth-language" onClick={onLanguage}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button></header>
-    {welcome ? children : <div className="auth-columns"><aside className="auth-art"><span className="auth-art-chip">SYNAPSE SOFT</span><div className="auth-art-copy"><h2>{t('authVisualHeading')}<br /><span>{t('authVisualHeadingAccent')}</span></h2><p>{t('authVisualCopy')}</p></div><Orbit /><p className="auth-art-footnote">{t('authTagline')} <span aria-hidden="true">✦</span></p></aside>
+    {welcome ? children : <div className="auth-columns">
       <div className="auth-form-region"><div className="auth-mobile-mark" aria-hidden="true">✦</div>{children}</div></div>}
     <footer className="auth-footer">SynapseLMS <span aria-hidden="true">·</span> {t('authFooter')}</footer>
   </main>

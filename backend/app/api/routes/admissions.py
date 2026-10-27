@@ -79,7 +79,7 @@ def page(db, query, limit, offset, render):
 def request_view(db, row):
     result = view(
         row,
-        "id student_id course_id branch_id format availability "
+        "id student_id course_id branch_id preferred_class_id format availability "
         "discount_code status reason version created_at",
     )
     result.update(
@@ -451,6 +451,10 @@ def submit(body: RequestInput, db: DB, tenant: Tenant, request: Request, respons
         raise APIError(409, "ADMISSION_FEE_REQUIRED")
     if body.branch_id and svc.scoped(db, Branch, tenant, body.branch_id).archived_at:
         raise APIError(409, "FACILITY_ARCHIVED")
+    if body.preferred_class_id:
+        desired = svc.scoped(db, LearningClass, tenant, body.preferred_class_id)
+        if desired.course_id != course.id:
+            raise APIError(422, "ADMISSION_CLASS_MISMATCH")
     settings = db.scalar(
         select(AdmissionSettings).where(AdmissionSettings.organization_id == tenant.organization.id)
     )
@@ -716,10 +720,22 @@ def collect(
     if body.amount > row.total - svc.paid(db, row) - life.offset(db, row):
         raise APIError(409, "PAYMENT_EXCEEDS_DEBT")
     before = invoice_view(db, row)
+    reference_key = body.reference.strip().casefold() if body.method == "transfer" else None
+    if body.method == "transfer" and not reference_key:
+        raise APIError(422, "PAYMENT_REFERENCE_REQUIRED")
+    if reference_key and db.scalar(
+        select(Payment.id).where(
+            Payment.organization_id == tenant.organization.id,
+            Payment.method == "transfer",
+            func.lower(func.trim(Payment.reference)) == reference_key,
+        )
+    ):
+        raise APIError(409, "PAYMENT_REFERENCE_USED")
     payment = Payment(
         organization_id=tenant.organization.id,
         invoice_id=row.id,
         actor_id=tenant.actor.user.id,
+        reference_key=reference_key,
         **body.model_dump(exclude={"request_key"}),
     )
     db.add(payment)

@@ -131,8 +131,10 @@ def login(data: Login, response: Response, db: DB, request: Request):
         select(User).where(EmailKey(User.email) == str(data.email).lower()).with_for_update()
     )
     valid = verify_password(data.password, user.password_hash if user else DUMMY_HASH)
-    if not user or not valid or not user.is_active:
+    if not user or not valid:
         raise APIError(401, "INVALID_CREDENTIALS")
+    if not user.is_active:
+        raise APIError(403, "ACCOUNT_LOCKED")
     login = AuthSession(
         user_id=user.id,
         expires_at=now() + timedelta(days=get_settings().session_days),

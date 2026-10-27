@@ -11,7 +11,7 @@ beforeEach(() => vi.resetAllMocks())
 afterEach(cleanup)
 
 it('shows only approved answer choices and keeps locked themes disabled', async () => {
-  vi.mocked(api).mockImplementation(async path => path === '/practice/mine' ? {items: [{id: 'q1', course_id: 'c1', locale: 'en', stem: 'Choose the correct answer.', options: ['one', 'two'], status: 'published'}]} : {current_streak: 1, best_streak: 1, unlocked: ['synapse-soft'], selected: 'synapse-soft'})
+  vi.mocked(api).mockImplementation(async path => path === '/practice/mine' ? {items: [{id: 'q1', course_id: 'c1', locale: 'en', stem: 'Choose the correct answer.', options: ['one', 'two'], status: 'published'}]} : path === '/practice/sets/mine' || path.startsWith('/course-catalog') ? {items: []} : {current_streak: 1, best_streak: 1, unlocked: ['synapse-soft'], selected: 'synapse-soft'})
   render(<MemoryRouter><AIPractice language="en" /></MemoryRouter>)
   expect(await screen.findByText('Choose the correct answer.')).toBeVisible()
   expect(screen.getAllByRole('button', {name: 'Locked'})).toHaveLength(3)

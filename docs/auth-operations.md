@@ -26,6 +26,8 @@ docker compose run --rm --no-deps api .venv/bin/alembic upgrade head
 docker compose up -d --no-deps api web
 ```
 
+Compose cần file khóa AI tại `SYNAPSE_AI_MASTER_KEY_FILE` trong `.env` trước khi chạy migration hoặc API. Trên máy này, file nằm ở `.local-secrets/ai-master-key` (được Git bỏ qua). Sao lưu riêng file khóa cùng với DB; giữ nguyên khóa khi chuyển máy hoặc khôi phục dữ liệu có credential AI.
+
 Các migration nền: `20260926_0011` ([phân công và lịch cơ bản](./scheduling.md)), 0010 ([chi nhánh/phòng/lớp nháp](./class-foundation.md)), 0009 ([hồ sơ/năng lực giáo viên](./teacher-profiles.md)) và 0008 ([trình độ và mục tiêu học viên](./student-proficiencies.md)). Xác minh email, khôi phục mật khẩu, quản lý phiên và Mailpit tại [vòng đời tài khoản](./account-lifecycle.md); các phần sau tại [mời thành viên](./membership-invitations.md), [hồ sơ học viên](./student-profiles.md) và [danh mục khóa học](./course-catalog.md). Migration không tự xác minh tài khoản cũ hoặc tạo dữ liệu nghiệp vụ giả. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy. Không downgrade DB thật đã nhập dữ liệu; cần backup/quy trình phục hồi riêng. Checkpoint triển khai thực tế ghi trong myplan.
 
 Tạo Root Admin bằng email của bạn (thay giá trị ví dụ):

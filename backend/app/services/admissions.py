@@ -219,6 +219,8 @@ def candidates(db, tenant, req):
     )
     result = []
     for item in rows:
+        if getattr(req, "preferred_class_id", None) and item.id != req.preferred_class_id:
+            continue
         if db.get(Branch, item.branch_id).archived_at:
             continue
         if (

@@ -521,7 +521,7 @@ def test_debt_policy_rechecks_approval_and_settings_permission(admissions):
         .post(
             BASE + "/invoices/" + invoice["id"] + "/payments",
             headers=f[5],
-            json=payload(amount=1000, method="transfer"),
+            json=payload(amount=1000, method="transfer", reference="DEBT-POLICY-RECEIPT"),
         )
         .status_code
         == 200

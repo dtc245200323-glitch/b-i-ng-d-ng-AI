@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ComponentProps, FormEvent, ReactNode } from 'react'
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router'
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { AccountAction, EmailRequestForm, Sessions, VerificationStatus } from './Account'
 import { api, ApiError, clearSession, setSupportSession, signIn, signOut } from './api'
 import type { Profile } from './api'
@@ -25,6 +25,9 @@ import { AIPractice, PracticeReview } from './AIPractice'
 import { AIInsights } from './AIInsights'
 import { AIHub } from './AIHub'
 import { Dashboard } from './Dashboard'
+import { AuditTimeline, Reporting } from './Reporting'
+import { ClassAdvisor } from './ClassAdvisor'
+import { PublicHome } from './PublicHome'
 import { Icon } from './ui/Icon'
 import { routeIcon } from './ui/routeIcon'
 
@@ -37,6 +40,7 @@ function WorkspaceLink({ children, ...props }: Omit<ComponentProps<typeof NavLin
 
 export default function App() {
   const location = useLocation()
+  const navigate = useNavigate()
   const [language, setLanguage] = useState<Language>('vi')
   const t = (key: string) => translate(language, key)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -44,7 +48,8 @@ export default function App() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
-  const [registering, setRegistering] = useState(false)
+  const registering = location.pathname === '/register'
+  const setRegistering = (value: boolean) => navigate(value ? '/register' : '/login')
   const [recovering, setRecovering] = useState(false)
   const [welcome, setWelcome] = useState<'restoring' | 'profile' | 'ready' | 'failed' | null>('restoring')
   const [readAttempt, setReadAttempt] = useState(0)
@@ -141,6 +146,7 @@ export default function App() {
     return authLayout(<AccountAction key={location.pathname} language={language} reset={location.pathname.endsWith('reset-password')} />)
   }
   if (welcome) return authLayout(<AuthWelcome key={readAttempt} language={language} phase={welcome} profile={profile} error={error} onRetry={beginProfileRead} onBack={leaveWelcome} onComplete={completeWelcome} />, true)
+  if (!profile && location.pathname === '/') return <PublicHome />
   if (!profile && recovering) return authLayout(<EmailRequestForm language={language} onBack={() => setRecovering(false)} />)
   if (!profile) return authLayout(<AuthForm key={registering ? 'register' : 'login'} language={language} registering={registering} busy={busy} error={error} notice={notice} onSubmit={authenticate}
     onMode={() => { setRegistering(!registering); setError(''); setNotice('') }} onRecovery={() => { setRecovering(true); setError(''); setNotice('') }} />)
@@ -153,13 +159,14 @@ export default function App() {
     <nav aria-label="Navigation"><WorkspaceLink to="/" end>{language === 'vi' ? 'Tổng quan' : 'Overview'}</WorkspaceLink><WorkspaceLink to="/sessions">{t('sessions')}</WorkspaceLink>{profile.is_root_admin && <WorkspaceLink to="/centers">{t('centers')}</WorkspaceLink>}{(manager || support) && <><WorkspaceLink to="/members">{t('members')}</WorkspaceLink><WorkspaceLink to="/invitations">{t('invitations')}</WorkspaceLink></>}{studentAdmin && <><WorkspaceLink to="/students">{t('students')}</WorkspaceLink><WorkspaceLink to="/teachers">{t('teachers')}</WorkspaceLink><WorkspaceLink to="/courses">{t('courses')}</WorkspaceLink><WorkspaceLink to="/facilities">{t('facilities')}</WorkspaceLink><WorkspaceLink to="/classes">{t('classes')}</WorkspaceLink><WorkspaceLink to="/class-calendar">{t('weeklyAgenda')}</WorkspaceLink></>}{teacher && <><WorkspaceLink to="/teacher-profile">{t('myTeacherProfile')}</WorkspaceLink><WorkspaceLink to="/teaching-sessions">{t('myTeachingSessions')}</WorkspaceLink></>}{learner && <><WorkspaceLink to="/student-profile">{t('myStudentProfile')}</WorkspaceLink><WorkspaceLink to="/course-catalog">{t('courseCatalog')}</WorkspaceLink></>}</nav>
       <nav className="business-navigation" aria-label={language === 'vi' ? 'Nghiệp vụ học viên' : 'Student operations'}>{(studentAdmin || learner) && <><WorkspaceLink to="/admissions">{language === 'vi' ? 'Tuyển sinh' : 'Admissions'}</WorkspaceLink><WorkspaceLink to="/enrollments">{language === 'vi' ? 'Bảo lưu & hoàn phí' : 'Enrollment & refunds'}</WorkspaceLink><WorkspaceLink to="/finances">{language === 'vi' ? 'Học phí & thu tiền' : 'Fees & collections'}</WorkspaceLink></>}{studentAdmin && <><WorkspaceLink to="/admission-settings">{language === 'vi' ? 'Thiết lập tuyển sinh' : 'Admission settings'}</WorkspaceLink><WorkspaceLink to="/grading-settings">{t('gradingSettings')}</WorkspaceLink></>}{(studentAdmin || teacher) && <WorkspaceLink to="/gradebook">{t('gradebook')}</WorkspaceLink>}{(studentAdmin || teacher) && <WorkspaceLink to="/materials">{language === 'vi' ? 'Học liệu' : 'Materials'}</WorkspaceLink>}{learner && <WorkspaceLink to="/my-materials">{language === 'vi' ? 'Tài liệu của tôi' : 'My materials'}</WorkspaceLink>}{teacher && <WorkspaceLink to="/attendance">{language === 'vi' ? 'Điểm danh' : 'Attendance'}</WorkspaceLink>}{learner && <><WorkspaceLink to="/my-learning">{language === 'vi' ? 'Học tập của tôi' : 'My learning'}</WorkspaceLink><WorkspaceLink to="/my-results">{t('myResults')}</WorkspaceLink></>}</nav>
       <nav aria-label={language === 'vi' ? 'AI và bài luyện' : 'AI and practice'}>
+        {(studentAdmin || learner) && <WorkspaceLink to="/class-advisor">{language === 'vi' ? 'AI tư vấn lớp' : 'AI class advisor'}</WorkspaceLink>}
         {(rootAI || manager || !!support) && <WorkspaceLink to="/ai-settings">{language === 'vi' ? 'Thiết lập AI' : 'AI settings'}</WorkspaceLink>}
         {rootAI && <WorkspaceLink to="/ai-prompts">Prompt Studio</WorkspaceLink>}
         {(manager || !!support || teacher) && <WorkspaceLink to="/practice-review">{language === 'vi' ? 'Duyệt bài luyện' : 'Review practice'}</WorkspaceLink>}
         {learner && <WorkspaceLink to="/ai-hub">{language === 'vi' ? 'Trung tâm AI' : 'AI hub'}</WorkspaceLink>}
         {learner && <WorkspaceLink to="/practice">{language === 'vi' ? 'Bài luyện' : 'Practice'}</WorkspaceLink>}
         {(learner || teacher) && <WorkspaceLink to="/ai-progress">{language === 'vi' ? 'Tiến độ AI' : 'AI progress'}</WorkspaceLink>}
-      </nav></aside>
+      </nav>{(manager || support || rootAI) && <nav className="insight-navigation" aria-label={language === 'vi' ? 'Báo cáo và kiểm toán' : 'Reports and audit'}>{(manager || support) && <WorkspaceLink to="/reports">{language === 'vi' ? 'Báo cáo đào tạo' : 'Training reports'}</WorkspaceLink>}<WorkspaceLink to="/activity-log">{language === 'vi' ? 'Nhật ký hoạt động' : 'Activity log'}</WorkspaceLink></nav>}<div className="sidebar-signature"><span className="signature-dot" />{language === 'vi' ? 'Không gian đào tạo chuyên nghiệp' : 'Your learning workspace'}<small>Synapse · Learning, connected.</small></div></aside>
     <main><header className="topbar"><div className="topbar-identity"><button type="button" className="navigation-toggle" aria-controls="main-navigation" aria-expanded={navigationOpen} onClick={() => setNavigationOpen(value => !value)} aria-label={language === 'vi' ? 'Mở menu' : 'Open menu'}><Icon name="menu" /></button><span className="topbar-location">{location.pathname === '/' ? (language === 'vi' ? 'Tổng quan / Bảng điều khiển' : 'Overview / Dashboard') : (support?.name || profile.membership?.organization_name || t('root'))}</span></div><div className="topbar-actions">{(studentAdmin || learner || teacher) && <NotificationBell key={support?.id || profile.membership?.id} language={language} />}{languageButton}<span className="workspace-avatar" title={profile.display_name || profile.email}>{(profile.display_name || profile.email).slice(0, 2).toUpperCase()}</span><button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
       <section className="content">{messages}{support && <div className="card support-banner"><span>{t('supporting')}: {support.name}</span><button onClick={async () => {
         try { await api(`/admin/support-sessions/${support.id}`, 'DELETE'); setSupportSession(null); setSupport(null) }
@@ -170,6 +177,9 @@ export default function App() {
         {!profile.is_root_admin && !profile.membership?.tenant_available && <p role="status">{t('unavailable')}</p>}</article>
         <form className="card compact-form" onSubmit={passwordChange}><h2>{t('passwordChange')}</h2><label>{t('currentPassword')}<input name="currentPassword" type="password" autoComplete="current-password" required /></label><label>{t('newPassword')}<input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label><button className="primary" disabled={busy}>{t('save')}</button></form></Dashboard>} />
         <Route path="ai-settings" element={rootAI || manager || support ? <AISettings key={support?.id || profile.id} language={language} root={!!rootAI} /> : <Navigate to="/" replace />} />
+        <Route path="reports" element={manager || support ? <Reporting key={support?.id || profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
+        <Route path="class-advisor" element={studentAdmin || learner ? <ClassAdvisor key={support?.id || profile.membership?.id} language={language} staff={!!studentAdmin} /> : <Navigate to="/" replace />} />
+        <Route path="activity-log" element={manager || support || rootAI ? <AuditTimeline key={support?.id || profile.membership?.id || profile.id} language={language} root={!!rootAI} /> : <Navigate to="/" replace />} />
         <Route path="ai-prompts" element={rootAI ? <AIPrompts language={language} /> : <Navigate to="/" replace />} />
         <Route path="practice-review" element={manager || support || teacher ? <PracticeReview key={support?.id || profile.membership?.id} language={language} manager={!!manager || !!support} /> : <Navigate to="/" replace />} />
         <Route path="practice" element={learner ? <AIPractice key={profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
@@ -181,7 +191,7 @@ export default function App() {
         <Route path="facilities" element={studentAdmin ? <Classrooms key={support?.id || profile.membership?.id} language={language} facilities manager={!!manager || !!support} /> : <Navigate to="/" replace />} />
         <Route path="classes" element={studentAdmin ? <Classrooms key={support?.id || profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
         <Route path="class-calendar" element={studentAdmin ? <WeeklyAgenda key={support?.id || profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
-        <Route path="admissions" element={studentAdmin || learner ? <Admissions key={support?.id || profile.membership?.id} language={language} staff={!!studentAdmin} /> : <Navigate to="/" replace />} />
+        <Route path="admissions" element={studentAdmin || learner ? <Admissions key={support?.id || profile.membership?.id} language={language} staff={!!studentAdmin} advice={location.state} /> : <Navigate to="/" replace />} />
         <Route path="admission-settings" element={studentAdmin ? <AdmissionSettings key={support?.id || profile.membership?.id} language={language} manager={!!manager || !!support} /> : <Navigate to="/" replace />} />
         <Route path="finances" element={studentAdmin || learner ? <Finances key={support?.id || profile.membership?.id} language={language} staff={!!studentAdmin} /> : <Navigate to="/" replace />} />
         <Route path="enrollments" element={studentAdmin || learner ? <EnrollmentLifecycle key={support?.id || profile.membership?.id} language={language} staff={!!studentAdmin} manager={!!manager || !!support} /> : <Navigate to="/" replace />} />

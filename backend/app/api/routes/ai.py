@@ -1,13 +1,17 @@
 """Root AI settings and tenant task opt-in."""
 
+from types import SimpleNamespace
 from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, Request, Response
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
+from app.api.admission_schemas import Availability
 from app.api.ai_schemas import (
     PromptInput,
     PromptPublish,
@@ -29,12 +33,55 @@ from app.models import (
     AIRun,
     AITenantSetting,
 )
+from app.services import admissions
 from app.services.ai import progress
 from app.services.ai.prompts import render, validate_template
 from app.services.ai.providers import LOCAL_KINDS, complete, encrypt_credential, validate_base_url
 from app.services.ai.recommendations import recommend
 
 router = APIRouter(prefix="/ai", dependencies=[Depends(auth_guard)])
+
+
+class AdviceInput(BaseModel):
+    course_id: UUID
+    student_id: UUID | None = None
+    availability: list[Availability] = Field(min_length=1, max_length=28)
+    locale: Literal["vi", "en"] = "vi"
+
+
+@router.post("/recommendations/preview")
+def preview_advice(body: AdviceInput, db: DB, tenant: Tenant, request: Request, response: Response):
+    from app.models import Course, StudentProfile
+
+    role = authorize(db, tenant, request, response, "business_read")
+    if role == "student":
+        profile = admissions.own_student(db, tenant)
+        if body.student_id and body.student_id != profile.id:
+            raise APIError(403, "FORBIDDEN")
+    elif role in {"staff", "organization_manager"} and body.student_id:
+        profile = admissions.scoped(db, StudentProfile, tenant, body.student_id)
+    else:
+        raise APIError(403, "FORBIDDEN")
+    admissions.student_ready(db, tenant, profile)
+    course = admissions.scoped(db, Course, tenant, body.course_id)
+    if course.status != "published":
+        raise APIError(404, "COURSE_NOT_FOUND")
+    query = SimpleNamespace(
+        status="waiting",
+        cancelled_at=None,
+        course_id=course.id,
+        student_id=profile.id,
+        branch_id=None,
+        format="any",
+        availability=jsonable_encoder(body.availability),
+    )
+    result = recommend(db, tenant, query, body.locale, strict=True)
+    authorize(db, tenant, request, response, "business_read")
+    # AI calls release locks; filter again against current capacity and availability.
+    admissions.student_ready(db, tenant, profile)
+    valid = {str(c["id"]): c for c in admissions.candidates(db, tenant, query) if not c["warnings"]}
+    result["items"] = [valid[str(c["id"])] for c in result["items"] if str(c["id"]) in valid]
+    return result
 
 
 @router.get("/recommendations/requests/{request_id}")

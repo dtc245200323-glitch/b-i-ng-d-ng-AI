@@ -7,7 +7,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import DB, Tenant, audit, auth_guard
-from app.api.practice_schemas import GenerateInput, QuestionInput, SubmitInput, ThemeInput
+from app.api.practice_schemas import (
+    GenerateInput,
+    PracticeSetInput,
+    PracticeSetSubmit,
+    QuestionInput,
+    SubmitInput,
+    ThemeInput,
+)
 from app.api.routes.courses import authorize
 from app.core.errors import APIError
 from app.core.security import now
@@ -17,13 +24,87 @@ from app.models import (
     LearningClass,
     PracticeAttempt,
     PracticeQuestion,
+    PracticeSet,
     TeacherProfile,
     ThemeSelection,
 )
-from app.services import admissions
+from app.services import admissions, practice_sets
 from app.services import practice as svc
 
 router = APIRouter(prefix="/practice", dependencies=[Depends(auth_guard)])
+
+
+def student_access(db, tenant, request, response):
+    if authorize(db, tenant, request, response, "business_read") != "student":
+        raise APIError(403, "FORBIDDEN")
+    return admissions.own_student(db, tenant)
+
+
+@router.post("/sets/generate")
+def generate_set(
+    body: PracticeSetInput, db: DB, tenant: Tenant, request: Request, response: Response
+):
+    profile = student_access(db, tenant, request, response)
+    try:
+        result = practice_sets.generate(db, tenant, profile, body)
+        student_access(db, tenant, request, response)
+        audit(db, tenant.actor, "practice.set.generate", tenant.organization.id, result["id"])
+        db.commit()
+        return result
+    except IntegrityError as error:
+        db.rollback()
+        raise APIError(409, "PRACTICE_CONFLICT") from error
+
+
+@router.get("/sets/mine")
+def my_sets(db: DB, tenant: Tenant, request: Request, response: Response):
+    profile = student_access(db, tenant, request, response)
+    rows = db.scalars(
+        select(PracticeSet)
+        .where(
+            PracticeSet.organization_id == tenant.organization.id,
+            PracticeSet.student_id == profile.id,
+        )
+        .order_by(PracticeSet.created_at.desc(), PracticeSet.id)
+        .limit(100)
+    )
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "topic": row.topic,
+                "level": row.level,
+                "difficulty": row.difficulty,
+                "question_count": len(row.questions),
+                "created_at": row.created_at,
+                "completed_at": row.completed_at,
+                "score_percent": practice_sets.view(row).get("score_percent"),
+            }
+            for row in rows
+        ]
+    }
+
+
+@router.get("/sets/{set_id}")
+def get_set(set_id: UUID, db: DB, tenant: Tenant, request: Request, response: Response):
+    profile = student_access(db, tenant, request, response)
+    return practice_sets.view(practice_sets.owned(db, tenant, profile, set_id))
+
+
+@router.post("/sets/{set_id}/submit")
+def submit_set(
+    set_id: UUID,
+    body: PracticeSetSubmit,
+    db: DB,
+    tenant: Tenant,
+    request: Request,
+    response: Response,
+):
+    profile = student_access(db, tenant, request, response)
+    result = practice_sets.submit(db, tenant, profile, set_id, body.answers)
+    audit(db, tenant.actor, "practice.set.submit", tenant.organization.id, set_id)
+    db.commit()
+    return result
 
 
 def reviewer(db, tenant, request, response, course_id):

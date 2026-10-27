@@ -5,10 +5,12 @@ from app.services import admissions
 from app.services.ai.routing import invoke
 
 
-def recommend(db, tenant, request_row, locale: str):
+def recommend(db, tenant, request_row, locale: str, *, strict=False):
     if request_row.status != "waiting" or request_row.cancelled_at:
         raise APIError(409, "ADMISSION_NOT_WAITING")
     candidates = admissions.candidates(db, tenant, request_row)
+    if strict:
+        candidates = [c for c in candidates if not c["warnings"]]
     ordered = sorted(candidates, key=lambda x: (len(x["warnings"]), -x["seats_left"], x["code"]))
     if len(ordered) <= 1:
         return {"items": ordered, "mode": "rule", "run_id": None}

@@ -86,6 +86,7 @@ class AdmissionRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         tenant_key("student_id", "student_profiles"),
         tenant_key("course_id", "courses"),
         tenant_key("branch_id", "branches"),
+        tenant_key("preferred_class_id", "learning_classes"),
         UniqueConstraint("id", "organization_id"),
         CheckConstraint(
             "status IN ('submitted', 'rejected', 'waiting', 'placed')", name="ck_admission_status"
@@ -95,6 +96,7 @@ class AdmissionRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     student_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     course_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     branch_id: Mapped[UUID | None] = mapped_column(Uuid)
+    preferred_class_id: Mapped[UUID | None] = mapped_column(Uuid)
     format: Mapped[str] = mapped_column(String(16), default="any")
     availability: Mapped[list] = mapped_column(JSON)
     discount_code: Mapped[str] = mapped_column(String(40), default="")
@@ -152,12 +154,14 @@ class Payment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         tenant_key("invoice_id", "invoices"),
         CheckConstraint("amount > 0", name="ck_payment_amount"),
         CheckConstraint("method IN ('cash', 'transfer')", name="ck_payment_method"),
+        Index("uq_payment_reference_key", "organization_id", "reference_key", unique=True),
     )
     organization_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("organizations.id"), index=True)
     invoice_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     amount: Mapped[int] = mapped_column(BigInteger)
     method: Mapped[str] = mapped_column(String(12))
     reference: Mapped[str] = mapped_column(String(200), default="")
+    reference_key: Mapped[str | None] = mapped_column(String(200))
     actor_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.id"))
     reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reversed_by: Mapped[UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))

@@ -16,6 +16,7 @@ from app.models import (
     Enrollment,
     LearningClass,
     PracticeAttempt,
+    PracticeSet,
 )
 from app.services import admissions
 from app.services import results as calculations
@@ -167,6 +168,22 @@ def student(db, tenant, locale):
     if attempts:
         facts.append(
             _fact("practice:recent", "Bài luyện đã hoàn thành", str(attempts), "/practice")
+        )
+    sets = db.scalar(
+        select(func.count(PracticeSet.id)).where(
+            PracticeSet.organization_id == tenant.organization.id,
+            PracticeSet.student_id == profile.id,
+            PracticeSet.completed_at.is_not(None),
+        )
+    )
+    if sets:
+        facts.append(
+            _fact(
+                "practice:sets",
+                "Bộ bài tự luyện đã hoàn thành" if locale == "vi" else "Completed practice sets",
+                str(sets),
+                "/practice",
+            )
         )
     return _summary(db, tenant, locale, facts, "student")
 

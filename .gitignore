@@ -29,6 +29,7 @@ backend/test-results/
 frontend/admissions-ui-results.json
 frontend/reservation-ui-results.json
 .local-backups/
+.local-secrets/
 ui-design/
 .fastapicloud/
 
@@ -39,3 +40,8 @@ backend/.ai-pg-test-*/
 backend/.ai-pytest-*/
 backend/.ai-test-tmp*/
 backend/.uv-cache/
+
+# Local document work and generated review artifacts
+.test-tmp/
+bao-cao-hoan-chinh/
+docs/testing-*/

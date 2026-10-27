@@ -15,6 +15,7 @@ from app.api.routes.membership_invitations import router as membership_invitatio
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.practice import router as practice_router
 from app.api.routes.proficiencies import router as proficiencies_router
+from app.api.routes.reporting import router as reporting_router
 from app.api.routes.results import router as results_router
 from app.api.routes.schedules import router as schedules_router
 from app.api.routes.session_operations import router as session_operations_router
@@ -22,6 +23,7 @@ from app.api.routes.students import router as students_router
 from app.api.routes.teachers import router as teachers_router
 
 api_router = APIRouter()
+api_router.include_router(reporting_router, tags=["reporting"])
 api_router.include_router(ai_router, tags=["ai"])
 api_router.include_router(practice_router, tags=["practice"])
 api_router.include_router(enrollment_lifecycle_router, tags=["enrollment-lifecycle"])

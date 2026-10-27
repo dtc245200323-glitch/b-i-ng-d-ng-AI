@@ -4,6 +4,7 @@ import { createRequestKey, requestErrorCode } from './requestKey'
 import type { Language } from './i18n'
 import { errorMessage } from './i18n'
 import './ai.css'
+import { PracticeSets } from './PracticeSets'
 
 type Question = {id: string; course_id: string; locale: string; stem: string; options: string[]; status: string; correct_index?: number; explanation?: string}
 type Attempt = {id: string; correct: boolean; correct_index: number; explanation: string}
@@ -27,6 +28,7 @@ export function AIPractice({language}: {language: Language}) {
     catch (e) { setError(errorCode(e)) } finally { setBusy(false) }
   }
   return <section className="ai-page"><h1>{word(language, 'Bài luyện AI', 'AI practice')}</h1><p>{word(language, 'Hoàn thành một bài hợp lệ mỗi ngày để tích chuỗi, không cần đạt điểm tối thiểu. Bài sai vẫn giúp bạn luyện tập.', 'Complete one valid exercise each day to grow your streak. No minimum score is required.')}</p>
+    <PracticeSets language={language} />
     {error && <p role="alert" className="error">{displayError(language, error)}</p>}
     {rewards && <article className="card ai-streak"><strong>🔥 {rewards.current_streak}</strong><span>{word(language, 'ngày liên tiếp', 'day streak')} · {word(language, 'kỷ lục', 'best')} {rewards.best_streak}</span></article>}
     {!questions.length && <p>{word(language, 'Chưa có bài mới được duyệt cho lớp đang học. Hãy quay lại sau.', 'No new approved exercises for your current classes yet.')}</p>}

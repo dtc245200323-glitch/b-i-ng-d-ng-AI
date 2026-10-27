@@ -163,3 +163,4 @@ __all__ = [
     "User",
     "UserMembership",
 ]
+from app.models.practice_set import PracticeSet as PracticeSet

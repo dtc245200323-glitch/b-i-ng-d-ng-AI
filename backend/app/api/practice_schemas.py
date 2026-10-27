@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -25,3 +25,17 @@ class SubmitInput(BaseModel):
 
 class ThemeInput(BaseModel):
     theme: Literal["synapse-soft", "neo-pop", "clay-garden", "liquid-glass"]
+
+
+class PracticeSetInput(BaseModel):
+    request_key: UUID
+    course_id: UUID
+    locale: Literal["vi", "en"] = "vi"
+    topic: str = Field(min_length=2, max_length=200)
+    level: str = Field(min_length=1, max_length=100)
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
+    question_count: int = Field(ge=1, le=20, strict=True)
+
+
+class PracticeSetSubmit(BaseModel):
+    answers: list[Annotated[int, Field(strict=True)]] = Field(min_length=1, max_length=20)
